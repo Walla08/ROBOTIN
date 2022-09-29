@@ -2,9 +2,10 @@ import java.awt.Color;
 import java.awt.geom.Point2D;
 import java.util.Random;
 import robocode.*;
-import robocode.HitByBulletEvent;
-import robocode.ScannedRobotEvent;
 import robocode.util.Utils;
+/*import robocode.HitByBulletEvent;
+import robocode.ScannedRobotEvent;
+import robocode.util.Utils;*/
 
 /*
  * To change this license header, choose License Headers in Project Properties.
@@ -48,7 +49,9 @@ public class robotprueba1 extends AdvancedRobot{
     * La funcio consisteix en disparar al enemic amb una potencia determinada
     * segons la proximitat d'aquest.
     *
+     * @param e
     */
+    @Override
     public void onScannedRobot(ScannedRobotEvent e) {
                 
         
@@ -117,6 +120,7 @@ public class robotprueba1 extends AdvancedRobot{
     
     
     
+    @Override
     public void onHitByBullet(HitByBulletEvent e) { 
         setTurnLeftRadians(getGunHeadingRadians() - getHeadingRadians());
         setBack((100));
@@ -154,7 +158,9 @@ public class robotprueba1 extends AdvancedRobot{
     *<p>
     *Al xocar contra una paret en movem primerament endavant,
     *si encara aixi seguim en onHitWall anem endarrere
+     * @param e
     */
+    @Override
     public void onHitWall(HitWallEvent e){
         setAhead(50);
         setBack(50);
@@ -164,7 +170,9 @@ public class robotprueba1 extends AdvancedRobot{
     * En el moment que l'event WinEvent s'activa cridem aquesta funcio
     * <p>
     * Al guanyar el tanc canvia totalment al color negre
+     * @param e
     */
+    @Override
     public void onWin(WinEvent e) {
         setColors(Color.black, Color.black, Color.black, Color.black, Color.black);
     }
