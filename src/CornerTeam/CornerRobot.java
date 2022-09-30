@@ -1,3 +1,4 @@
+package CornerTeam;
 
 import java.awt.Color;
 import java.awt.geom.Point2D;
@@ -45,24 +46,30 @@ public class CornerRobot extends TeamRobot {
         
         p = new Point2D.Double(x,y);
         teamPositions.put(getName(), p);
+        //teamPositions.put(getName(), Esquinas[0]);
         out.println("Coord. inicial: "+p.x + " " + p.y);
-        out.println(getName());
-        out.println(Arrays.toString(getTeammates()));
+        out.println("My name: "+getName());
+        out.println("Current teammates: "+Arrays.toString(getTeammates()));
         
         //out.println("Current team positions list: "+teamPositions);
         try {
             this.broadcastMessage(p);
+            out.println("Message sent");
         } catch (IOException ex) {
             Logger.getLogger(CornerRobot.class.getName()).log(Level.SEVERE, null, ex);
         }
         
-        out.println("Mi esquina: "+calculaEsquinaCercana());
         
         while(teamPositions.size() != 5){
             doNothing();
         }
         
-        Point2D.Double robotEsquina = Esquinas[calculaEsquinaCercana()];    // Esquina a la que se dirigirá el robot
+        int indexOfEsquina = calculaEsquinaCercana();
+        out.println("Mi esquina: "+indexOfEsquina);
+        Point2D.Double robotEsquina = Esquinas[indexOfEsquina];    // Esquina a la que se dirigirá el robot
+        //this.turnRight(90);
+        goToCorner(robotEsquina);
+        
     }
     
     public int calculaEsquinaCercana(){
@@ -86,14 +93,26 @@ public class CornerRobot extends TeamRobot {
         return indexOfEsquina;
     }
     
-    public void onMessageRecieved(MessageEvent e){
-        out.println("Message recieved from: "+e.getSender());
-        out.println("Message content: "+e.getMessage());
-        String sender = e.getSender();
-        Point2D.Double p = (Point2D.Double) e.getMessage();
+    public void goToCorner(Point2D.Double esquina){
+        double num = (esquina.y - p.y)/(esquina.x - p.x);
+        double grad = Math.toDegrees(Math.atan(num));
+        out.println("Grados: "+grad);
+        while(getHeading() - 90 != grad){
+            turnLeft(10);
+        }
+        ahead(1000);
+    }
+
+    @Override
+    public void onMessageReceived(MessageEvent event) {
+        out.println("Message recieved from: "+event.getSender());
+        out.println("Message content: "+event.getMessage());
+        String sender = event.getSender();
+        Point2D.Double p = (Point2D.Double) event.getMessage();
         teamPositions.put(sender, p);
         out.println("Current team positions list: "+teamPositions);
     }
+
     
     public void disparo(double Distancia){
         if (Distancia < 150){
