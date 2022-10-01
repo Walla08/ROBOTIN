@@ -11,6 +11,8 @@ import java.util.Map.Entry;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import robocode.*;
+import robocode.util.Utils;
+import static robocode.util.Utils.normalRelativeAngleDegrees;
 
 
 /*
@@ -24,9 +26,10 @@ import robocode.*;
  * @author Walter
  */
 public class CornerRobot extends TeamRobot {
-    private static Map<String, Point2D.Double> teamPositions = new HashMap<>();
+    private static final Map<String, Point2D.Double> teamPositions = new HashMap<>();
     Point2D.Double[] Esquinas = new Point2D.Double[4];
     Point2D.Double p;
+    int indexOfEsquina = -1;
     
     @Override
     public void run() {
@@ -64,8 +67,10 @@ public class CornerRobot extends TeamRobot {
             doNothing();
         }
         
-        int indexOfEsquina = calculaEsquinaCercana();
-        out.println("Mi esquina: "+indexOfEsquina);
+        indexOfEsquina = calculaEsquinaCercana();
+        if(indexOfEsquina == 0)
+            doNothing();
+        out.println("Mi esquina: "+(int)(indexOfEsquina+1));
         Point2D.Double robotEsquina = Esquinas[indexOfEsquina];    // Esquina a la que se dirigirá el robot
         //this.turnRight(90);
         goToCorner(robotEsquina);
@@ -73,7 +78,6 @@ public class CornerRobot extends TeamRobot {
     }
     
     public int calculaEsquinaCercana(){
-        int indexOfEsquina = -1;
         for(int i = 0; i < 4; ++i){
             double minDistance = 1000000;
             String robotName = "";
@@ -94,13 +98,29 @@ public class CornerRobot extends TeamRobot {
     }
     
     public void goToCorner(Point2D.Double esquina){
-        double num = (esquina.y - p.y)/(esquina.x - p.x);
-        double grad = Math.toDegrees(Math.atan(num));
-        out.println("Grados: "+grad);
-        while(getHeading() - 90 != grad){
-            turnLeft(10);
+        turnRight(normalRelativeAngleDegrees(indexOfEsquina*90 - getHeading()-90));
+        out.println("Angulo: "+getHeading());
+        if(getHeading() == 0){
+            ahead(800 - p.y-20);
+            turnLeft(90);
+            ahead(p.x-20);
         }
-        ahead(1000);
+        else if(getHeading() == 90){
+            ahead(1000 - p.x-20);
+            turnLeft(90);
+            ahead(800 - p.y-20);
+        }
+        else if(getHeading() == 180){
+            ahead(p.y-20);
+            turnLeft(90);
+            ahead(1000 - p.x-20);
+        }
+        else if(getHeading() == 270){
+            ahead(p.x-20);
+            turnLeft(90);
+            ahead(p.y-20);
+        }
+        turnLeft(135);
     }
 
     @Override
@@ -111,6 +131,12 @@ public class CornerRobot extends TeamRobot {
         Point2D.Double p = (Point2D.Double) event.getMessage();
         teamPositions.put(sender, p);
         out.println("Current team positions list: "+teamPositions);
+    }
+
+    @Override
+    public void onScannedRobot(ScannedRobotEvent event) {
+        if(!isTeammate(event.getName()))
+            fire(1);
     }
 
     
