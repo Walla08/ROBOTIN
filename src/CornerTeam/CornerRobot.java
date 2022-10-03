@@ -33,6 +33,7 @@ public class CornerRobot extends TeamRobot {
     
     @Override
     public void run() {
+        execute();
         setBodyColor(Color.darkGray);
         setGunColor(Color.black);
         setRadarColor(Color.GREEN);
@@ -69,12 +70,14 @@ public class CornerRobot extends TeamRobot {
         
         indexOfEsquina = calculaEsquinaCercana();
         if(indexOfEsquina == 0)
-            doNothing();
+            kamikaze();
         out.println("Mi esquina: "+(int)(indexOfEsquina+1));
         Point2D.Double robotEsquina = Esquinas[indexOfEsquina];    // Esquina a la que se dirigirá el robot
         //this.turnRight(90);
         goToCorner(robotEsquina);
-        
+        setAdjustGunForRobotTurn(true);
+        while(true)
+            centinela();
     }
     
     public int calculaEsquinaCercana(){
@@ -120,9 +123,22 @@ public class CornerRobot extends TeamRobot {
             turnLeft(90);
             ahead(p.y-20);
         }
-        turnLeft(135);
+        turnLeft(90);
+    }
+    
+    public void centinela(){
+        ahead(100);
+        ahead(-100);
+        turnLeft(90);
+        ahead(100);
+        ahead(-100);
+        turnRight(90);
     }
 
+    public void kamikaze(){
+        
+    }
+    
     @Override
     public void onMessageReceived(MessageEvent event) {
         out.println("Message recieved from: "+event.getSender());
@@ -135,8 +151,14 @@ public class CornerRobot extends TeamRobot {
 
     @Override
     public void onScannedRobot(ScannedRobotEvent event) {
-        if(!isTeammate(event.getName()))
-            fire(1);
+        if(!isTeammate(event.getName())){
+            stop();
+            out.print("DETECTED ENEMY: "+event.getName());
+            disparo(event.getDistance());
+            scan();
+            resume();
+            //goToCorner(Esquinas[indexOfEsquina]);
+        }
     }
 
     
