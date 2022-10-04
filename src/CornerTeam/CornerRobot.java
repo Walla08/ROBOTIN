@@ -28,10 +28,10 @@ import static robocode.util.Utils.normalRelativeAngleDegrees;
 public class CornerRobot extends TeamRobot {
     private static final Map<String, Point2D.Double> teamPositions = new HashMap<>();
     Point2D.Double[] Esquinas = new Point2D.Double[4];
-    Point2D.Double p;
     int indexOfEsquina = -1;
     enum Estados {irEsquina, Patrulla};
     Estados states;
+    boolean arrivedToCorner = false;
     
     @Override
     public void run() {
@@ -47,19 +47,15 @@ public class CornerRobot extends TeamRobot {
         Esquinas[2] = new Point2D.Double(getBattleFieldWidth(), getBattleFieldHeight());    // right,top
         Esquinas[3] = new Point2D.Double(getBattleFieldWidth(), 0);                         // right,bot
         
-        double x = getX();
-        double y = getY();
-        
-        p = new Point2D.Double(x,y);
-        teamPositions.put(getName(), p);
+        teamPositions.put(getName(), new Point2D.Double(getX(), getY()));
         //teamPositions.put(getName(), Esquinas[0]);
-        out.println("Coord. inicial: "+p.x + " " + p.y);
+        out.println("Coord. inicial: "+getX() + " " + getY());
         out.println("My name: "+getName());
         out.println("Current teammates: "+Arrays.toString(getTeammates()));
         
         //out.println("Current team positions list: "+teamPositions);
         try {
-            this.broadcastMessage(p);
+            this.broadcastMessage(new Point2D.Double(getX(), getY()));
             out.println("Message sent");
         } catch (IOException ex) {
             Logger.getLogger(CornerRobot.class.getName()).log(Level.SEVERE, null, ex);
@@ -72,46 +68,63 @@ public class CornerRobot extends TeamRobot {
         
         
         indexOfEsquina = calculaEsquinaCercana();
-        if(indexOfEsquina == 0)
+        out.println("Mi esquina: "+indexOfEsquina);
+        if(indexOfEsquina == -1){
             kamikaze();
-        out.println("Mi esquina: "+(int)(indexOfEsquina+1));
+            return;
+        }
         Point2D.Double robotEsquina = Esquinas[indexOfEsquina];    // Esquina a la que se dirigirá el robot
         
         states = states.irEsquina;
         
-        //this.turnRight(90);
         //goToCorner(robotEsquina);
         
-        //setAdjustGunForRobotTurn(true);
         while(true){
+            if(!onMyCorner())
+                states = states.irEsquina;
             switch(states){
                 case irEsquina:
-                    turnRight(normalRelativeAngleDegrees(indexOfEsquina*90 - getHeading()-90));
-                    out.println("Angulo: "+getHeading());
+                    turnRight(indexOfEsquina*90 - getHeading()-90);
                     if(getHeading() == 0){
-                        ahead(getBattleFieldHeight() - p.y-20);
+                        ahead(getBattleFieldHeight() - getY()-20);
                         turnLeft(90);
-                        ahead(p.x-20);
+                        ahead(getX()-20);
                     }
                     else if(getHeading() == 90){
-                        ahead(getBattleFieldWidth() - p.x-20);
+                        ahead(getBattleFieldWidth() - getX()-20);
                         turnLeft(90);
-                        ahead(getBattleFieldHeight() - p.y-20);
+                        ahead(getBattleFieldHeight() - getY()-20);
                     }
                     else if(getHeading() == 180){
-                        ahead(p.y-20);
+                        ahead(getY()-20);
                         turnLeft(90);
-                        ahead(getBattleFieldWidth() - p.x-20);
+                        ahead(getBattleFieldWidth() - getX()-20);
                     }
                     else if(getHeading() == 270){
-                        ahead(p.x-20);
+                        ahead(getX()-20);
                         turnLeft(90);
-                        ahead(p.y-20);
+                        ahead(getY()-20);
                     }
+                    turnLeft(90);
+                    states = states.Patrulla;
+                    //arrivedToCorner = true;
+                    break;
+                case Patrulla:
+                    setAdjustGunForRobotTurn(true);
+                    turnGunLeft(90);
+                    turnGunRight(90);
+                    centinela();
                     break;
             }
-            //centinela();
         }
+    }
+    
+    public boolean onMyCorner(){
+        boolean posX = Esquinas[indexOfEsquina].x-50 < getX() && getX() < Esquinas[indexOfEsquina].x+50;
+        boolean posY = Esquinas[indexOfEsquina].y-50 < getY() && getY() < Esquinas[indexOfEsquina].y+50;
+        if(posX && posY)
+            arrivedToCorner = true;
+        return posX && posY || arrivedToCorner;
     }
     
     public int calculaEsquinaCercana(){
@@ -137,35 +150,40 @@ public class CornerRobot extends TeamRobot {
     public void goToCorner(Point2D.Double esquina){
         out.println("Angulo: "+getHeading());
         if(getHeading() == 0){
-            ahead(getBattleFieldHeight() - p.y-20);
+            ahead(getBattleFieldHeight() - getY()-20);
             turnLeft(90);
-            ahead(p.x-20);
+            ahead(getX()-20);
         }
         else if(getHeading() == 90){
-            ahead(getBattleFieldWidth() - p.x-20);
+            ahead(getBattleFieldWidth() - getX()-20);
             turnLeft(90);
-            ahead(getBattleFieldHeight() - p.y-20);
+            ahead(getBattleFieldHeight() - getY()-20);
         }
         else if(getHeading() == 180){
-            ahead(p.y-20);
+            ahead(getY()-20);
             turnLeft(90);
-            ahead(getBattleFieldWidth() - p.x-20);
+            ahead(getBattleFieldWidth() - getX()-20);
         }
         else if(getHeading() == 270){
-            ahead(p.x-20);
+            ahead(getX()-20);
             turnLeft(90);
-            ahead(p.y-20);
+            ahead(getY()-20);
         }
         turnLeft(90);
     }
     
     public void centinela(){
-        ahead(100);
-        ahead(-100);
-        turnLeft(90);
-        ahead(100);
-        ahead(-100);
-        turnRight(90);
+        if(onMyCorner()){
+            ahead(100);
+            ahead(-100);
+            turnLeft(90);
+            ahead(100);
+            ahead(-100);
+            turnRight(90);
+        }
+        else{
+            arrivedToCorner = false;
+        }
     }
 
     public void kamikaze(){
@@ -185,13 +203,19 @@ public class CornerRobot extends TeamRobot {
     @Override
     public void onScannedRobot(ScannedRobotEvent event) {
         if(!isTeammate(event.getName())){
-            stop();
-            out.print("DETECTED ENEMY: "+event.getName());
-            disparo(event.getDistance());
-            scan();
-            //stop();
-            //resume();
-            goToCorner(Esquinas[indexOfEsquina]);
+             double absoluteBearing = getHeading() + event.getBearing();
+             double bearingFromGun = normalRelativeAngleDegrees(absoluteBearing - getGunHeading());
+             if (Math.abs(bearingFromGun) <= 3) {
+                 if(states == states.Patrulla)
+                     turnGunRight(bearingFromGun);
+                 if (getGunHeat() == 0) {
+                        fire(Math.min(3 - Math.abs(bearingFromGun), getEnergy() - .1));
+                }
+             }
+             else {
+                 if(states == states.Patrulla)
+                     turnGunRight(bearingFromGun);
+            }
         }
     }
 
