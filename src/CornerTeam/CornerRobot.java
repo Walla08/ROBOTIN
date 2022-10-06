@@ -29,8 +29,10 @@ public class CornerRobot extends TeamRobot {
     private static final Map<String, Point2D.Double> teamPositions = new HashMap<>();
     Point2D.Double[] Esquinas = new Point2D.Double[4];
     int indexOfEsquina = -1;
-    enum Estados {irEsquina, Patrulla};
-    Estados states;
+    enum EstadosCorner {irEsquina, Patrulla};
+    enum EstadosKamikaze {scan, chase};
+    EstadosKamikaze kamikazeState;
+    EstadosCorner cornerState;
     boolean arrivedToCorner = false;
     
     @Override
@@ -70,19 +72,20 @@ public class CornerRobot extends TeamRobot {
         indexOfEsquina = calculaEsquinaCercana();
         out.println("Mi esquina: "+indexOfEsquina);
         if(indexOfEsquina == -1){
-            kamikaze();
-            return;
+            setRadarColor(Color.RED);
+            while(true){
+                kamikazeState = EstadosKamikaze.scan;
+                kamikazeFullScan();
+            }
         }
+        
         Point2D.Double robotEsquina = Esquinas[indexOfEsquina];    // Esquina a la que se dirigirá el robot
-        
-        states = states.irEsquina;
-        
-        //goToCorner(robotEsquina);
-        
+        cornerState = EstadosCorner.irEsquina;
+                
         while(true){
             if(!onMyCorner())
-                states = states.irEsquina;
-            switch(states){
+                cornerState = EstadosCorner.irEsquina;
+            switch(cornerState){
                 case irEsquina:
                     turnRight(indexOfEsquina*90 - getHeading()-90);
                     if(getHeading() == 0){
@@ -106,7 +109,7 @@ public class CornerRobot extends TeamRobot {
                         ahead(getY()-20);
                     }
                     turnLeft(90);
-                    states = states.Patrulla;
+                    cornerState = EstadosCorner.Patrulla;
                     //arrivedToCorner = true;
                     break;
                 case Patrulla:
@@ -138,6 +141,7 @@ public class CornerRobot extends TeamRobot {
                     robotName = e.getKey();
                 }
             }
+            out.println("Robot: "+robotName+" a la esquina "+indexOfEsquina);
             teamPositions.remove(robotName);    // se descarta al robot que ya esté asociado a una esquina
             if(robotName.equals(getName())){
                 indexOfEsquina = i;
@@ -145,31 +149,6 @@ public class CornerRobot extends TeamRobot {
             }
         }
         return indexOfEsquina;
-    }
-    
-    public void goToCorner(Point2D.Double esquina){
-        out.println("Angulo: "+getHeading());
-        if(getHeading() == 0){
-            ahead(getBattleFieldHeight() - getY()-20);
-            turnLeft(90);
-            ahead(getX()-20);
-        }
-        else if(getHeading() == 90){
-            ahead(getBattleFieldWidth() - getX()-20);
-            turnLeft(90);
-            ahead(getBattleFieldHeight() - getY()-20);
-        }
-        else if(getHeading() == 180){
-            ahead(getY()-20);
-            turnLeft(90);
-            ahead(getBattleFieldWidth() - getX()-20);
-        }
-        else if(getHeading() == 270){
-            ahead(getX()-20);
-            turnLeft(90);
-            ahead(getY()-20);
-        }
-        turnLeft(90);
     }
     
     public void centinela(){
@@ -186,8 +165,9 @@ public class CornerRobot extends TeamRobot {
         }
     }
 
-    public void kamikaze(){
-        
+    public void kamikazeFullScan(){
+        if(kamikazeState == EstadosKamikaze.scan)
+            turnRadarLeft(360);
     }
     
     @Override
@@ -203,20 +183,48 @@ public class CornerRobot extends TeamRobot {
     @Override
     public void onScannedRobot(ScannedRobotEvent event) {
         if(!isTeammate(event.getName())){
-             double absoluteBearing = getHeading() + event.getBearing();
-             double bearingFromGun = normalRelativeAngleDegrees(absoluteBearing - getGunHeading());
-             if (Math.abs(bearingFromGun) <= 3) {
-                 if(states == states.Patrulla)
-                     turnGunRight(bearingFromGun);
-                 if (getGunHeat() == 0) {
+            out.println("ENEMY SCANNED");
+            if(cornerState == EstadosCorner.Patrulla){
+                double absoluteBearing = getHeading() + event.getBearing();
+                double bearingFromGun = normalRelativeAngleDegrees(absoluteBearing - getGunHeading());
+                if (Math.abs(bearingFromGun) <= 3) {
+                    turnGunRight(bearingFromGun);
+                    if (getGunHeat() == 0) {
                         fire(Math.min(3 - Math.abs(bearingFromGun), getEnergy() - .1));
+                   }
                 }
-             }
-             else {
-                 if(states == states.Patrulla)
-                     turnGunRight(bearingFromGun);
+                else {
+                    turnGunRight(bearingFromGun);
+               }
+            }
+            else if(indexOfEsquina == -1){
+                kamikazeState = EstadosKamikaze.chase;
+                chaseRobot(event);
             }
         }
+    }
+    
+    public void chaseRobot(ScannedRobotEvent e){
+
+        double gunTurnAmt = Utils.normalRelativeAngle(e.getBearing() + (getHeading() - getRadarHeading()));
+
+        setTurnGunRight(gunTurnAmt);
+        setTurnRight(e.getBearing());
+
+        setAhead(e.getDistance());
+
+        double absoluteBearing = getHeading() + e.getBearing();
+        double bearingFromGun = normalRelativeAngleDegrees(absoluteBearing - getGunHeading());
+        if (Math.abs(bearingFromGun) <= 3) {
+            turnGunRight(bearingFromGun);
+            if (getGunHeat() == 0) {
+                fire(Math.min(3 - Math.abs(bearingFromGun), getEnergy() - .1));
+           }
+        }
+        else
+            turnGunRight(bearingFromGun);
+
+        return;
     }
 
     
