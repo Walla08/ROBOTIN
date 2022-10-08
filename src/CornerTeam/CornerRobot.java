@@ -23,7 +23,7 @@ import static robocode.util.Utils.normalRelativeAngleDegrees;
 
 /**
  *
- * @author Walter
+ * @author Walter y Henok
  */
 public class CornerRobot extends TeamRobot {
     private static final Map<String, Point2D.Double> teamPositions = new HashMap<>();
@@ -36,6 +36,13 @@ public class CornerRobot extends TeamRobot {
     boolean arrivedToCorner = false;
     
     @Override
+    /**
+     * Funcion principal del programa. Aqui es donde se toman las decisiones iniciales tales como
+     * el color del robot. Tambien se hace un calculo de esquinas de manera local donde el robot
+     * sabrá que esquina le tocará.
+     * Tambien se les asigna las posiciones de las esquinas.
+     */
+    
     public void run() {
         execute();
         setBodyColor(Color.darkGray);
@@ -65,6 +72,7 @@ public class CornerRobot extends TeamRobot {
         
         
         while(teamPositions.size() != 5){
+            //El robot espera que le lleguen todas las posiciones de los robots del equipo
             doNothing();
         }
         
@@ -72,10 +80,11 @@ public class CornerRobot extends TeamRobot {
         indexOfEsquina = calculaEsquinaCercana();
         out.println("Mi esquina: "+indexOfEsquina);
         if(indexOfEsquina == -1){
+            //Si el robot recibe la esquina -1 se convierte en el kamikaze
             setRadarColor(Color.RED);
             while(true){
                 kamikazeState = EstadosKamikaze.scan;
-                kamikazeFullScan();
+                turnRadarLeft(360);
             }
         }
         
@@ -114,14 +123,21 @@ public class CornerRobot extends TeamRobot {
                     break;
                 case Patrulla:
                     setAdjustGunForRobotTurn(true);
-                    turnGunLeft(90);
-                    turnGunRight(90);
+                    //turnGunLeft(90);
+                    //turnGunRight(90);
+                    setTurnGunRightRadians(Double.POSITIVE_INFINITY);
                     centinela();
                     break;
             }
+            
         }
     }
     
+    /**
+     * Función encargada de verificar si el robot se encuentra en su esquina
+     * calculando la posicion actual del robot con el de su esquina asignada.
+     * @return onMyCorner
+     */
     public boolean onMyCorner(){
         boolean posX = Esquinas[indexOfEsquina].x-50 < getX() && getX() < Esquinas[indexOfEsquina].x+50;
         boolean posY = Esquinas[indexOfEsquina].y-50 < getY() && getY() < Esquinas[indexOfEsquina].y+50;
@@ -130,6 +146,12 @@ public class CornerRobot extends TeamRobot {
         return posX && posY || arrivedToCorner;
     }
     
+    /**
+     * La funcion devuelve el índice a los robos más cercanos a las esquinas
+     * y el robot que se quede sin indice se convertirá en el kamikaze
+     *
+     * @return esquina
+    */
     public int calculaEsquinaCercana(){
         for(int i = 0; i < 4; ++i){
             double minDistance = 1000000;
@@ -151,6 +173,11 @@ public class CornerRobot extends TeamRobot {
         return indexOfEsquina;
     }
     
+    /**
+     * Función que se encarga del movimiento de patrulla en las esquinas.
+     * Permite que el robot situado en su esquina tengo un movimiento unicamente cuando
+     * se encuentre en su esquina. De esta manera trata de esquivar balas.
+     */
     public void centinela(){
         if(onMyCorner()){
             ahead(100);
@@ -165,11 +192,17 @@ public class CornerRobot extends TeamRobot {
         }
     }
 
-    public void kamikazeFullScan(){
-        if(kamikazeState == EstadosKamikaze.scan)
+    /*public void kamikazeFullScan(){
+            if(kamikazeState == EstadosKamikaze.scan)
             turnRadarLeft(360);
-    }
+    }*/
     
+    /**
+    *Esta funcion se encarga de gestionar los mensajes recibidos por broadcast.
+    * Se utiliza para almacenar la posición del resto de robots del equipo.
+    *
+     * @param event
+    */
     @Override
     public void onMessageReceived(MessageEvent event) {
         out.println("Message recieved from: "+event.getSender());
@@ -180,11 +213,18 @@ public class CornerRobot extends TeamRobot {
         out.println("Current team positions list: "+teamPositions);
     }
 
+    /**
+    *Esta función gestiona el evento de escanear un robot.
+    * El robot solo disparará si el robot escaneado es un enemigo.
+    * Si el robot es el kamikaze tendrá un comportamiento especial.
+    *
+     * @param event
+    */
     @Override
     public void onScannedRobot(ScannedRobotEvent event) {
         if(!isTeammate(event.getName())){
             out.println("ENEMY SCANNED");
-            if(cornerState == EstadosCorner.Patrulla){
+            if(indexOfEsquina != -1){
                 double absoluteBearing = getHeading() + event.getBearing();
                 double bearingFromGun = normalRelativeAngleDegrees(absoluteBearing - getGunHeading());
                 if (Math.abs(bearingFromGun) <= 3) {
@@ -196,6 +236,7 @@ public class CornerRobot extends TeamRobot {
                 else {
                     turnGunRight(bearingFromGun);
                }
+                
             }
             else if(indexOfEsquina == -1){
                 kamikazeState = EstadosKamikaze.chase;
@@ -203,6 +244,14 @@ public class CornerRobot extends TeamRobot {
             }
         }
     }
+    
+    /**
+    *Esta funcion es exclusiva del kamikaze.
+    * Se encargará de seguir al robot enemigo escaneado
+    * y tratará de acercar al kamikaze todo lo posible mientras dispara.
+    *
+     * @param e
+    */
     
     public void chaseRobot(ScannedRobotEvent e){
 
