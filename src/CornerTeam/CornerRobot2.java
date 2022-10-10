@@ -25,7 +25,7 @@ import static robocode.util.Utils.normalRelativeAngleDegrees;
  *
  * @author Walter y Henok
  */
-public class CornerRobot extends TeamRobot {
+public class CornerRobot2 extends TeamRobot {
     private static final Map<String, Point2D.Double> teamPositions = new HashMap<>();
     Point2D.Double[] Esquinas = new Point2D.Double[4];
     int indexOfEsquina = -1;
