@@ -104,7 +104,7 @@ public class robotprueba1 extends AdvancedRobot{
             //pre: Si el tanc enemic esta a menys que 160px
             //post: Disparam amb una potencia 0, girem el tanc en direccio del radar (mov. horari)
             //post: Movem el tanc 100 px mes aprop del enemic
-            disparaMulticol(2);
+            fire(2);
             setTurnRightRadians(getGunHeadingRadians() - getHeadingRadians());
             setAhead((e.getDistance() + 100));
         }else{
@@ -112,7 +112,7 @@ public class robotprueba1 extends AdvancedRobot{
             //post: disparam amb mes intensitat i girem al voltant del altre tanc apuntant amb el canyo
             //* i el radar 90º cap al enemic (mov. horari)
             //post: llavors retrocedim la distancia fins a l'enemic + 100px
-            disparaMulticol(5);
+            fire(5);
             setTurnRightRadians(getGunHeadingRadians() - getHeadingRadians() + 1.5);
             setBack((e.getDistance() + 100));
         }
@@ -128,32 +128,7 @@ public class robotprueba1 extends AdvancedRobot{
         setBack((100));
     }   
     
-    /**
-    *Aquesta funcio es cridad quan volem crear un dispar multicolor
-    *<p>
-    *
-    * La funcio consisteix en crear un color random i despres
-    * utilitzar el metode setBulletColor per modificar el color de la bala
-    * La potencia del dispar per l'unic parametre de la funcio
-    * 
-    * @param n potencia de dispar del robot
-    */
-    public void disparaMulticol(int n){
-       
-        Random rand = new Random();
-
-        //generem les diferents parts del color de manera random
-       
-        float r = rand.nextFloat();
-        float g = rand.nextFloat();
-        float b = rand.nextFloat();
-
-        Color randomColor = new Color(r, g, b);
-
-        setBulletColor(randomColor);
-
-        fire(n);
-    }
+    
     
     /**
     *En el moment que l'event HitWall s'activa cridem aquesta funcio

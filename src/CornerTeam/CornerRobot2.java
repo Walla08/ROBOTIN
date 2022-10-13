@@ -34,6 +34,7 @@ public class CornerRobot2 extends TeamRobot {
     EstadosKamikaze kamikazeState;
     EstadosCorner cornerState;
     boolean arrivedToCorner = false;
+    double oldEnemyHeading = 0;
     
     @Override
     /**
@@ -235,11 +236,68 @@ public class CornerRobot2 extends TeamRobot {
                 else {
                     turnGunRight(bearingFromGun);
                }
-                
             }
             else if(indexOfEsquina == -1){
-                kamikazeState = EstadosKamikaze.chase;
-                chaseRobot(event);
+                double bulletPower = Math.min(3.0,getEnergy());
+                double myX = getX();
+                double myY = getY();
+                double absoluteBearing = getHeadingRadians() + event.getBearingRadians();
+                //opertura entre el canyo i el radar
+                double enemyX = getX() + event.getDistance() * Math.sin(absoluteBearing);
+                double enemyY = getY() + event.getDistance() * Math.cos(absoluteBearing);
+                double enemyHeading = event.getHeadingRadians();
+                double enemyHeadingChange = enemyHeading - oldEnemyHeading;
+                double enemyVelocity = event.getVelocity();
+                oldEnemyHeading = enemyHeading;
+
+
+                double deltaTime = 0;
+                double battleFieldHeight = getBattleFieldHeight(), 
+                battleFieldWidth = getBattleFieldWidth();
+                double predictedX = enemyX, predictedY = enemyY;
+                while((++deltaTime) * (20.0 - 3.0 * bulletPower) < 
+                    Point2D.Double.distance(myX, myY, predictedX, predictedY)){		
+                        predictedX += Math.sin(enemyHeading) * enemyVelocity;
+                        predictedY += Math.cos(enemyHeading) * enemyVelocity;
+                        enemyHeading += enemyHeadingChange;
+                        if(	predictedX < 18.0 
+                                || predictedY < 18.0
+                                || predictedX > battleFieldWidth - 18.0
+                                || predictedY > battleFieldHeight - 18.0){
+
+                                predictedX = Math.min(Math.max(18.0, predictedX), 
+                                    battleFieldWidth - 18.0);	
+                                predictedY = Math.min(Math.max(18.0, predictedY), 
+                                    battleFieldHeight - 18.0);
+                                break;
+                        }
+                }
+                double theta = Utils.normalAbsoluteAngle(Math.atan2(
+                    predictedX - getX(), predictedY - getY()));
+
+                setTurnRadarRightRadians(Utils.normalRelativeAngle(
+                    absoluteBearing - getRadarHeadingRadians()));
+                setTurnGunRightRadians(Utils.normalRelativeAngle(
+                    theta - getGunHeadingRadians()));
+
+                 if (event.getDistance() > 160){
+                    //pre: Si el tanc enemic esta a menys que 160px
+                    //post: Disparam amb una potencia 0, girem el tanc en direccio del radar (mov. horari)
+                    //post: Movem el tanc 100 px mes aprop del enemic
+                    fire(2);
+                    setTurnRightRadians(getGunHeadingRadians() - getHeadingRadians());
+                    setAhead((event.getDistance() + 100));
+                }else{
+                    //pre: donat el cas que estem a menys o a 160px
+                    //post: disparam amb mes intensitat i girem al voltant del altre tanc apuntant amb el canyo
+                    //* i el radar 90º cap al enemic (mov. horari)
+                    //post: llavors retrocedim la distancia fins a l'enemic + 100px
+                    fire(5);
+                    setTurnRightRadians(getGunHeadingRadians() - getHeadingRadians() + 1.5);
+                    setBack((event.getDistance() + 100));
+                }
+                //kamikazeState = EstadosKamikaze.chase;
+                //chaseRobot(event);
             }
         }
     }
@@ -287,6 +345,23 @@ public class CornerRobot2 extends TeamRobot {
             fire(3);
         }
         
+    }
+    
+    @Override
+    public void onHitByBullet(HitByBulletEvent event) {
+        if(indexOfEsquina == -1){
+            setTurnLeftRadians(getGunHeadingRadians() - getHeadingRadians());
+            setBack((100));
+        }
+    }
+    
+    
+    @Override
+    public void onHitWall(HitWallEvent event){
+        if(indexOfEsquina == -1){
+            setAhead(50);
+            setBack(50);
+        }
     }
 
      
