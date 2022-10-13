@@ -33,7 +33,6 @@ public class CornerRobot2 extends TeamRobot {
     enum EstadosKamikaze {scan, chase};
     EstadosKamikaze kamikazeState;
     EstadosCorner cornerState;
-    boolean arrivedToCorner = false;
     double oldEnemyHeading = 0;
     
     @Override
@@ -48,7 +47,7 @@ public class CornerRobot2 extends TeamRobot {
         execute();
         setBodyColor(Color.darkGray);
         setGunColor(Color.black);
-        setRadarColor(Color.GREEN);
+        setRadarColor(Color.BLUE);
         setBulletColor(Color.ORANGE);
         setScanColor(Color.green);
         
@@ -82,6 +81,7 @@ public class CornerRobot2 extends TeamRobot {
         out.println("Mi esquina: "+indexOfEsquina);
         if(indexOfEsquina == -1){
             //Si el robot recibe la esquina -1 se convierte en el kamikaze
+            setRadarColor(Color.WHITE);
             while(true){
                 kamikazeState = EstadosKamikaze.scan;
                 turnRadarLeft(360);
@@ -119,12 +119,9 @@ public class CornerRobot2 extends TeamRobot {
                     }
                     turnLeft(90);
                     cornerState = EstadosCorner.Patrulla;
-                    //arrivedToCorner = true;
                     break;
                 case Patrulla:
                     setAdjustGunForRobotTurn(true);
-                    //turnGunLeft(90);
-                    //turnGunRight(90);
                     setTurnGunRightRadians(Double.POSITIVE_INFINITY);
                     centinela();
                     break;
@@ -141,9 +138,7 @@ public class CornerRobot2 extends TeamRobot {
     public boolean onMyCorner(){
         boolean posX = Esquinas[indexOfEsquina].x-50 < getX() && getX() < Esquinas[indexOfEsquina].x+50;
         boolean posY = Esquinas[indexOfEsquina].y-50 < getY() && getY() < Esquinas[indexOfEsquina].y+50;
-        if(posX && posY)
-            arrivedToCorner = true;
-        return posX && posY || arrivedToCorner;
+        return posX && posY;
     }
     
     /**
@@ -153,7 +148,7 @@ public class CornerRobot2 extends TeamRobot {
      * @return esquina
     */
     public int calculaEsquinaCercana(){
-        for(int i = 0; i < 4; ++i){
+        for(int i = 0; i < 3; ++i){
             double minDistance = 1000000;
             String robotName = "";
             for (Entry<String, Point2D.Double> e:teamPositions.entrySet()){
@@ -187,15 +182,7 @@ public class CornerRobot2 extends TeamRobot {
             ahead(-100);
             turnRight(90);
         }
-        else{
-            arrivedToCorner = false;
-        }
     }
-
-    /*public void kamikazeFullScan(){
-            if(kamikazeState == EstadosKamikaze.scan)
-            turnRadarLeft(360);
-    }*/
     
     /**
     *Esta funcion se encarga de gestionar los mensajes recibidos por broadcast.
@@ -238,115 +225,84 @@ public class CornerRobot2 extends TeamRobot {
                }
             }
             else if(indexOfEsquina == -1){
-                double bulletPower = Math.min(3.0,getEnergy());
-                double myX = getX();
-                double myY = getY();
-                double absoluteBearing = getHeadingRadians() + event.getBearingRadians();
-                //opertura entre el canyo i el radar
-                double enemyX = getX() + event.getDistance() * Math.sin(absoluteBearing);
-                double enemyY = getY() + event.getDistance() * Math.cos(absoluteBearing);
-                double enemyHeading = event.getHeadingRadians();
-                double enemyHeadingChange = enemyHeading - oldEnemyHeading;
-                double enemyVelocity = event.getVelocity();
-                oldEnemyHeading = enemyHeading;
-
-
-                double deltaTime = 0;
-                double battleFieldHeight = getBattleFieldHeight(), 
-                battleFieldWidth = getBattleFieldWidth();
-                double predictedX = enemyX, predictedY = enemyY;
-                while((++deltaTime) * (20.0 - 3.0 * bulletPower) < 
-                    Point2D.Double.distance(myX, myY, predictedX, predictedY)){		
-                        predictedX += Math.sin(enemyHeading) * enemyVelocity;
-                        predictedY += Math.cos(enemyHeading) * enemyVelocity;
-                        enemyHeading += enemyHeadingChange;
-                        if(	predictedX < 18.0 
-                                || predictedY < 18.0
-                                || predictedX > battleFieldWidth - 18.0
-                                || predictedY > battleFieldHeight - 18.0){
-
-                                predictedX = Math.min(Math.max(18.0, predictedX), 
-                                    battleFieldWidth - 18.0);	
-                                predictedY = Math.min(Math.max(18.0, predictedY), 
-                                    battleFieldHeight - 18.0);
-                                break;
-                        }
-                }
-                double theta = Utils.normalAbsoluteAngle(Math.atan2(
-                    predictedX - getX(), predictedY - getY()));
-
-                setTurnRadarRightRadians(Utils.normalRelativeAngle(
-                    absoluteBearing - getRadarHeadingRadians()));
-                setTurnGunRightRadians(Utils.normalRelativeAngle(
-                    theta - getGunHeadingRadians()));
-
-                 if (event.getDistance() > 160){
-                    //pre: Si el tanc enemic esta a menys que 160px
-                    //post: Disparam amb una potencia 0, girem el tanc en direccio del radar (mov. horari)
-                    //post: Movem el tanc 100 px mes aprop del enemic
-                    fire(2);
-                    setTurnRightRadians(getGunHeadingRadians() - getHeadingRadians());
-                    setAhead((event.getDistance() + 100));
-                }else{
-                    //pre: donat el cas que estem a menys o a 160px
-                    //post: disparam amb mes intensitat i girem al voltant del altre tanc apuntant amb el canyo
-                    //* i el radar 90º cap al enemic (mov. horari)
-                    //post: llavors retrocedim la distancia fins a l'enemic + 100px
-                    fire(5);
-                    setTurnRightRadians(getGunHeadingRadians() - getHeadingRadians() + 1.5);
-                    setBack((event.getDistance() + 100));
-                }
-                //kamikazeState = EstadosKamikaze.chase;
-                //chaseRobot(event);
+                kamikazeState = EstadosKamikaze.chase;
+                chaseRobot(event);
             }
         }
     }
     
     /**
     *Esta funcion es exclusiva del kamikaze.
-    * Se encargará de seguir al robot enemigo escaneado
-    * y tratará de acercar al kamikaze todo lo posible mientras dispara.
+    * Se encargará de perseguir al robot enemigo escaneado
+    * mientras le dispara.
     *
      * @param e
     */
     
     public void chaseRobot(ScannedRobotEvent e){
 
-        double gunTurnAmt = Utils.normalRelativeAngle(e.getBearing() + (getHeading() - getRadarHeading()));
+        double bulletPower = Math.min(3.0,getEnergy());
+        double myX = getX();
+        double myY = getY();
+        double absoluteBearing = getHeadingRadians() + e.getBearingRadians();
+        //opertura entre el canyo i el radar
+        double enemyX = getX() + e.getDistance() * Math.sin(absoluteBearing);
+        double enemyY = getY() + e.getDistance() * Math.cos(absoluteBearing);
+        double enemyHeading = e.getHeadingRadians();
+        double enemyHeadingChange = enemyHeading - oldEnemyHeading;
+        double enemyVelocity = e.getVelocity();
+        oldEnemyHeading = enemyHeading;
 
-        setTurnGunRight(gunTurnAmt);
-        setTurnRight(e.getBearing());
 
-        setAhead(e.getDistance());
+        double deltaTime = 0;
+        double battleFieldHeight = getBattleFieldHeight(), 
+        battleFieldWidth = getBattleFieldWidth();
+        double predictedX = enemyX, predictedY = enemyY;
+        while((++deltaTime) * (20.0 - 3.0 * bulletPower) < 
+            Point2D.Double.distance(myX, myY, predictedX, predictedY)){		
+                predictedX += Math.sin(enemyHeading) * enemyVelocity;
+                predictedY += Math.cos(enemyHeading) * enemyVelocity;
+                enemyHeading += enemyHeadingChange;
+                if(	predictedX < 18.0 
+                        || predictedY < 18.0
+                        || predictedX > battleFieldWidth - 18.0
+                        || predictedY > battleFieldHeight - 18.0){
 
-        double absoluteBearing = getHeading() + e.getBearing();
-        double bearingFromGun = normalRelativeAngleDegrees(absoluteBearing - getGunHeading());
-        if (Math.abs(bearingFromGun) <= 3) {
-            turnGunRight(bearingFromGun);
-            if (getGunHeat() == 0) {
-                fire(Math.min(3 - Math.abs(bearingFromGun), getEnergy() - .1));
-           }
+                        predictedX = Math.min(Math.max(18.0, predictedX), 
+                            battleFieldWidth - 18.0);	
+                        predictedY = Math.min(Math.max(18.0, predictedY), 
+                            battleFieldHeight - 18.0);
+                        break;
+                }
         }
-        else
-            turnGunRight(bearingFromGun);
+        double theta = Utils.normalAbsoluteAngle(Math.atan2(predictedX - getX(), predictedY - getY()));
 
-        return;
-    }
+        setTurnRadarRightRadians(Utils.normalRelativeAngle(absoluteBearing - getRadarHeadingRadians()));
+        setTurnGunRightRadians(Utils.normalRelativeAngle(theta - getGunHeadingRadians()));
 
-    
-    public void disparo(double Distancia){
-        if (Distancia < 150){
-            fire(1);
-        }
-        if(Distancia < 300){
+         if (e.getDistance() > 160){
+            //pre: Si el tanc enemic esta a menys que 160px
+            //post: Disparam amb una potencia 0, girem el tanc en direccio del radar (mov. horari)
+            //post: Movem el tanc 100 px mes aprop del enemic
             fire(2);
+            setTurnRightRadians(getGunHeadingRadians() - getHeadingRadians());
+            setAhead((e.getDistance() + 100));
+        }else{
+            //pre: donat el cas que estem a menys o a 160px
+            //post: disparam amb mes intensitat i girem al voltant del altre tanc apuntant amb el canyo
+            //* i el radar 90º cap al enemic (mov. horari)
+            //post: llavors retrocedim la distancia fins a l'enemic + 100px
+            fire(5);
+            setTurnRightRadians(getGunHeadingRadians() - getHeadingRadians() + 1.5);
+            setBack((e.getDistance() + 100));
         }
-        else{
-            fire(3);
-        }
-        
     }
     
+    /**
+     * Función exclusiva del kamikaze,
+     * en caso de recibir una bala, el tanque modificará su trayectoria ligeramente
+     * @param event 
+     */
     @Override
     public void onHitByBullet(HitByBulletEvent event) {
         if(indexOfEsquina == -1){
@@ -355,14 +311,30 @@ public class CornerRobot2 extends TeamRobot {
         }
     }
     
+    /**
+     * Función exclusica de kamikaze,
+     * en caso de impacto con un robot, el tanque modificará su trayectoria ligeramente
+     * @param event 
+     */
+    @Override
+    public void onHitRobot(HitRobotEvent event){
+        if(indexOfEsquina == -1){
+            back(50);
+            turnRight(45);
+        }
+    }
     
+    /**
+     * Función exclusica de kamikaze,
+     * en caso de impacto con una pared, el tanque modificará su trayectoria ligeramente
+     * @param event 
+     */
     @Override
     public void onHitWall(HitWallEvent event){
         if(indexOfEsquina == -1){
-            setAhead(50);
-            setBack(50);
+            back(50);
+            turnRight(45);
         }
     }
-
      
 }
