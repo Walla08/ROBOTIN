@@ -312,7 +312,7 @@ public class CornerRobot2 extends TeamRobot {
     }
     
     /**
-     * Función exclusica de kamikaze,
+     * Función exclusiva de kamikaze,
      * en caso de impacto con un robot, el tanque modificará su trayectoria ligeramente
      * @param event 
      */
@@ -325,7 +325,7 @@ public class CornerRobot2 extends TeamRobot {
     }
     
     /**
-     * Función exclusica de kamikaze,
+     * Función exclusiva de kamikaze,
      * en caso de impacto con una pared, el tanque modificará su trayectoria ligeramente
      * @param event 
      */
