@@ -67,7 +67,7 @@ public class CornerRobot2 extends TeamRobot {
             this.broadcastMessage(new Point2D.Double(getX(), getY()));
             out.println("Message sent");
         } catch (IOException ex) {
-            Logger.getLogger(CornerRobot.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(CornerRobot2.class.getName()).log(Level.SEVERE, null, ex);
         }
         
         
@@ -98,24 +98,24 @@ public class CornerRobot2 extends TeamRobot {
                 case irEsquina:
                     turnRight(indexOfEsquina*90 - getHeading()-90);
                     if(getHeading() == 0){
-                        ahead(getBattleFieldHeight() - getY()-20);
+                        ahead(getBattleFieldHeight() - getY()-18);
                         turnLeft(90);
-                        ahead(getX()-20);
+                        ahead(getX()-18);
                     }
                     else if(getHeading() == 90){
-                        ahead(getBattleFieldWidth() - getX()-20);
+                        ahead(getBattleFieldWidth() - getX()-18);
                         turnLeft(90);
-                        ahead(getBattleFieldHeight() - getY()-20);
+                        ahead(getBattleFieldHeight() - getY()-18);
                     }
                     else if(getHeading() == 180){
-                        ahead(getY()-20);
+                        ahead(getY()-18);
                         turnLeft(90);
-                        ahead(getBattleFieldWidth() - getX()-20);
+                        ahead(getBattleFieldWidth() - getX()-18);
                     }
                     else if(getHeading() == 270){
-                        ahead(getX()-20);
+                        ahead(getX()-18);
                         turnLeft(90);
-                        ahead(getY()-20);
+                        ahead(getY()-18);
                     }
                     turnLeft(90);
                     cornerState = EstadosCorner.Patrulla;
@@ -238,14 +238,13 @@ public class CornerRobot2 extends TeamRobot {
     *
      * @param e
     */
-    
     public void chaseRobot(ScannedRobotEvent e){
 
         double bulletPower = Math.min(3.0,getEnergy());
         double myX = getX();
         double myY = getY();
         double absoluteBearing = getHeadingRadians() + e.getBearingRadians();
-        //opertura entre el canyo i el radar
+        
         double enemyX = getX() + e.getDistance() * Math.sin(absoluteBearing);
         double enemyY = getY() + e.getDistance() * Math.cos(absoluteBearing);
         double enemyHeading = e.getHeadingRadians();
@@ -280,18 +279,11 @@ public class CornerRobot2 extends TeamRobot {
         setTurnRadarRightRadians(Utils.normalRelativeAngle(absoluteBearing - getRadarHeadingRadians()));
         setTurnGunRightRadians(Utils.normalRelativeAngle(theta - getGunHeadingRadians()));
 
-         if (e.getDistance() > 160){
-            //pre: Si el tanc enemic esta a menys que 160px
-            //post: Disparam amb una potencia 0, girem el tanc en direccio del radar (mov. horari)
-            //post: Movem el tanc 100 px mes aprop del enemic
+        if (e.getDistance() > 160){
             fire(2);
             setTurnRightRadians(getGunHeadingRadians() - getHeadingRadians());
             setAhead((e.getDistance() + 100));
         }else{
-            //pre: donat el cas que estem a menys o a 160px
-            //post: disparam amb mes intensitat i girem al voltant del altre tanc apuntant amb el canyo
-            //* i el radar 90º cap al enemic (mov. horari)
-            //post: llavors retrocedim la distancia fins a l'enemic + 100px
             fire(5);
             setTurnRightRadians(getGunHeadingRadians() - getHeadingRadians() + 1.5);
             setBack((e.getDistance() + 100));
@@ -319,21 +311,53 @@ public class CornerRobot2 extends TeamRobot {
     @Override
     public void onHitRobot(HitRobotEvent event){
         if(indexOfEsquina == -1){
-            back(50);
-            turnRight(45);
+            back(100);
         }
     }
     
     /**
      * Función exclusiva de kamikaze,
-     * en caso de impacto con una pared, el tanque modificará su trayectoria ligeramente
+     * en caso de impacto con una pared, el tanque modificará su trayectoria
+     * en función de la pared con la que impacte y su orientación actual
      * @param event 
      */
     @Override
     public void onHitWall(HitWallEvent event){
         if(indexOfEsquina == -1){
-            back(50);
-            turnRight(45);
+            double extra = 19;
+            double distance = 75;
+            if(getX()+extra >= getBattleFieldWidth()){        // right wall
+                if(getHeading() > 0 && getHeading() < 180){
+                    back(distance);
+                }
+                else{
+                    ahead(distance);
+                }
+            }
+            else if(getX()-extra <= 0){                       // left wall
+                if(getHeading() > 0 && getHeading() < 180){
+                    ahead(distance);
+                }
+                else{
+                    back(distance);
+                }
+            }
+            else if(getY()+extra >= getBattleFieldHeight()){  // top wall
+                if(getHeading() > 90 && getHeading() < 270){
+                    ahead(distance);
+                }
+                else{
+                    back(distance);
+                }
+            }
+            else if(getY()-extra <= 0){                       // bot wall
+                if(getHeading() > 90 && getHeading() < 270){
+                    back(distance);
+                }
+                else{
+                    ahead(distance);
+                }
+            }
         }
     }
      
