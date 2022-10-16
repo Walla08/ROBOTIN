@@ -360,5 +360,4 @@ public class CornerRobot2 extends TeamRobot {
             }
         }
     }
-     
 }
